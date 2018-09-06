@@ -1,5 +1,6 @@
 # @file dexell.py
 
+import argparse
 import ctypes
 import subprocess
 import sys
@@ -25,23 +26,17 @@ class Symbol():
         func.argtypes = [ctypes.c_char_p, ctypes.c_char, ctypes.c_size_t, ctypes.c_void_p]
         func.restype = ctypes.c_char_p
         d = func(name, 0, 0, ctypes.byref(status))
-        if self.name == 'bar':
-            print('{} {}'.format(self, status))
         if status.value == 0:
             return d.decode()
 
     
 class Binary():
     def __init__(self, _path):
-        """
-        """
         self.path = _path
         self.symbols = self.load_symbols(_path)
         self.binary = ctypes.CDLL(_path)
 
     def load_symbols(self, binary):
-        """
-        """
         args = ['nm', binary]
         proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
         stdout, stderr = proc.communicate()
@@ -62,20 +57,20 @@ class Binary():
 
 
     def execute_symbol(self, _name, *args):
-        """
-        """
         function = getattr(self.binary, self.symbols[_name].name)
         function()
         
 
 def run(argv):
-    """
-    """
-    binary = Binary(argv[0])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('binary')
+    parser.add_argument('symbol')
+    inputs = parser.parse_args(argv)
+
+    binary = Binary(inputs.binary)
     print(binary.symbols)
-    binary.execute_symbol('bar()')
+    binary.execute_symbol(inputs.symbol)
     
 
 if __name__ == '__main__':
     run(sys.argv[1:])
-
