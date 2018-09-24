@@ -2,6 +2,7 @@
 
 import argparse
 import ctypes
+import os
 import subprocess
 import sys
 
@@ -19,15 +20,10 @@ class Symbol():
 
 
     def demangle(self):
-        status = ctypes.c_int()
-        lib = ctypes.CDLL('libc++abi.so.1.0')
-        func = getattr(lib, '__cxa_demangle')
-        name = ctypes.c_char_p(self.name.encode())
-        func.argtypes = [ctypes.c_char_p, ctypes.c_char, ctypes.c_size_t, ctypes.c_void_p]
-        func.restype = ctypes.c_char_p
-        d = func(name, 0, 0, ctypes.byref(status))
-        if status.value == 0:
-            return d.decode()
+        args = ['c++filt', self.name]
+        proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        stdout, stderr = proc.communicate()
+        return stdout.strip()
 
     
 class Binary():
@@ -63,12 +59,11 @@ class Binary():
 
 def run(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('binary')
+    parser.add_argument('binary', type=os.path.abspath)
     parser.add_argument('symbol')
     inputs = parser.parse_args(argv)
 
     binary = Binary(inputs.binary)
-    print(binary.symbols)
     binary.execute_symbol(inputs.symbol)
     
 
